@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte CRM — HAUS Desarrollos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f7f8fc; color: #1a202c; line-height: 1.5; }
+
+  /* ── HEADER ── */
+  .header {
+    background: #1a1f2e;
+    padding: 28px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-left h1 { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+  .header-left h1 span { color: #f6ad55; }
+  .header-left .sub { font-size: 12px; color: #718096; margin-top: 4px; }
+  .header-right { text-align: right; }
+  .header-right .date { font-size: 12px; color: #718096; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; background: #1d3a2a; color: #68d391; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 999px; border: 1px solid #2d6a4f; margin-top: 6px; }
+  .status-badge::before { content: '●'; font-size: 8px; }
+
+  /* ── LAYOUT ── */
+  .page { max-width: 1200px; margin: 0 auto; padding: 36px 32px; }
+  .section { margin-bottom: 40px; }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .section-header h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #4a5568; }
+  .section-header::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+
+  /* ── KPI ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kpi {
+    background: #fff; border-radius: 12px; padding: 22px 24px;
+    border: 1px solid #e2e8f0; position: relative; overflow: hidden;
+  }
+  .kpi::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--c, #4299e1); }
+  .kpi .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; color: #a0aec0; margin-bottom: 8px; }
+  .kpi .value { font-size: 40px; font-weight: 800; color: #1a202c; line-height: 1; }
+  .kpi .note { font-size: 12px; color: #718096; margin-top: 6px; }
+  .kpi .flag { font-size: 11px; font-weight: 700; margin-top: 5px; color: var(--c, #4299e1); }
+
+  /* ── ALERT ── */
+  .alert {
+    background: #fff8f0; border: 1px solid #f6ad55; border-left: 4px solid #ed8936;
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 28px;
+    font-size: 13px; color: #744210; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── CARDS ── */
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; }
+  .card h3 { font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 18px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* ── FUNNEL BARS ── */
+  .funnel-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .funnel-name { font-size: 12px; color: #4a5568; width: 148px; flex-shrink: 0; }
+  .funnel-track { flex: 1; background: #f7f8fc; border-radius: 6px; overflow: hidden; height: 30px; }
+  .funnel-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 12px; font-size: 12px; font-weight: 700; color: #fff; }
+  .funnel-num { font-size: 12px; color: #718096; width: 28px; text-align: right; }
+  .funnel-pct { font-size: 11px; color: #a0aec0; width: 40px; text-align: right; }
+
+  /* ── INSIGHT CARDS ── */
+  .insight-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .insight {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;
+    border-top: 3px solid var(--c, #4299e1);
+  }
+  .insight .ico { font-size: 22px; margin-bottom: 10px; display: block; }
+  .insight .title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #4a5568; margin-bottom: 8px; }
+  .insight p { font-size: 13px; color: #4a5568; line-height: 1.65; }
+  .insight strong { color: #1a202c; }
+
+  /* ── TABLE ── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { background: #f7f8fc; color: #718096; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 11px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+  .tbl td { padding: 11px 16px; border-bottom: 1px solid #f0f2f7; color: #2d3748; vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: #f7f8fc; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .pr { background: #fff5f5; color: #c53030; }
+  .py { background: #fffbf0; color: #b7791f; }
+  .pg { background: #f0fff4; color: #276749; }
+  .pb { background: #ebf8ff; color: #2b6cb0; }
+
+  /* ── CRITERIA SECTION ── */
+  .criteria-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .criteria-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;
+    border-left: 4px solid var(--c, #4299e1);
+  }
+  .criteria-card .stage-name { font-size: 13px; font-weight: 700; color: #1a202c; margin-bottom: 4px; }
+  .criteria-card .stage-desc { font-size: 11px; color: #a0aec0; margin-bottom: 14px; font-style: italic; }
+  .criteria-card ul { padding-left: 16px; font-size: 12px; color: #4a5568; line-height: 2.1; }
+  .criteria-card ul li::marker { color: var(--c); }
+  .criteria-card .discard-note { margin-top: 12px; padding: 10px 12px; background: #fff5f5; border-radius: 8px; font-size: 11px; color: #c53030; font-weight: 600; }
+
+  /* ── METHODOLOGY ── */
+  .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .method-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px; }
+  .method-card h3 { font-size: 13px; font-weight: 700; color: #1a202c; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .axis-row { display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-start; }
+  .axis-num { width: 22px; height: 22px; border-radius: 50%; background: #1a1f2e; color: #fff; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .axis-content .axis-title { font-size: 12px; font-weight: 700; color: #1a202c; }
+  .axis-content .axis-sub { font-size: 11px; color: #718096; line-height: 1.5; }
+  .discard-list { list-style: none; padding: 0; }
+  .discard-list li { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid #f0f2f7; font-size: 12px; color: #4a5568; }
+  .discard-list li:last-child { border-bottom: none; }
+  .discard-list .x { color: #e53e3e; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── CHECKLIST ── */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f0f2f7; font-size: 13px; color: #2d3748; }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist .box { width: 18px; height: 18px; border: 2px solid #cbd5e0; border-radius: 4px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── DISCOVERY TEMPLATE ── */
+  .template-box {
+    background: #f7f8fc; border: 1px dashed #cbd5e0; border-radius: 10px;
+    padding: 20px; font-family: monospace; font-size: 12px; color: #4a5568; line-height: 2;
+  }
+  .template-box .tpl-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #a0aec0; margin-bottom: 12px; font-family: 'Segoe UI', sans-serif; }
+
+  /* ── ERRORS ── */
+  .error-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .error-item { background: #fff5f5; border: 1px solid #feb2b2; border-radius: 10px; padding: 14px 16px; font-size: 12px; color: #742a2a; display: flex; gap: 10px; align-items: flex-start; }
+  .error-item .eico { font-size: 14px; flex-shrink: 0; }
+  .error-item strong { display: block; font-size: 12px; color: #c53030; margin-bottom: 3px; }
+
+  /* ── FOOTER ── */
+  .footer { text-align: center; padding: 28px 0; color: #a0aec0; font-size: 11px; border-top: 1px solid #e2e8f0; margin-top: 20px; }
+
+  canvas { max-height: 240px; }
+
+  @media print {
+    body { background: #fff; }
+    .page { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Reporte CRM — <span>HAUS Desarrollos</span></h1>
+    <div class="sub">hausdesarrollos.kommo.com &nbsp;·&nbsp; Pipeline: Embudo de ventas</div>
+  </div>
+  <div class="header-right">
+    <div class="date">14 de mayo de 2026</div>
+    <div class="status-badge">Datos en tiempo real</div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- ═══ 1. ESTADO GENERAL ═══ -->
+  <div class="section">
+    <div class="section-header"><h2>Estado general del pipeline</h2></div>
+
+    <div class="kpi-row" style="margin-bottom:16px;">
+      <div class="kpi" style="--c:#e53e3e">
+        <div class="label">Total de leads</div>
+        <div class="value">82</div>
+        <div class="note">Mayo 2026 · Facebook Ads</div>
+      </div>
+      <div class="kpi" style="--c:#ed8936">
+        <div class="label">Activos en pipeline</div>
+        <div class="value">33</div>
+        <div class="note">40% del total</div>
+        <div class="flag">En seguimiento</div>
+      </div>
+      <div class="kpi" style="--c:#e53e3e">
+        <div class="label">Descartados</div>
+        <div class="value">49</div>
+        <div class="note">59.8% del total</div>
+        <div class="flag">⚠ Tasa a revisar</div>
+      </div>
+      <div class="kpi" style="--c:#38a169">
+        <div class="label">Calificados</div>
+        <div class="value">1</div>
+        <div class="note">1.2% del total</div>
+        <div class="flag">Foco de mejora</div>
+      </div>
+    </div>
+
+    <div class="alert">
+      <span class="alert-icon">⚠️</span>
+      <div>
+        <strong>Contexto importante para interpretar estos datos:</strong> el equipo de HAUS lleva una semana usando Kommo, por lo que la base de leads es nueva y los procesos todavía se están definiendo. Las métricas actuales reflejan ese arranque — el objetivo de este reporte es establecer criterios claros y hábitos sólidos desde el inicio, antes de que el volumen de leads crezca.
+      </div>
+    </div>
+
+    <div class="grid-2">
+
+      <div class="card">
+        <h3>Distribución por etapa</h3>
+        <div style="margin-top: 4px;">
+          <div class="funnel-row">
+            <div class="funnel-name">DESCARTADOS</div>
+            <div class="funnel-track"><div class="funnel-fill" style="width:100%; background:#fc8181;">49</div></div>
+            <div class="funnel-pct">59.8%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-name">Re contacto</div>
+            <div class="funnel-track"><div class="funnel-fill" style="width:36.7%; background:#f6ad55;">18</div></div>
+            <div class="funnel-pct">22.0%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-name">en conversación</div>
+            <div class="funnel-track"><div class="funnel-fill" style="width:24.5%; background:#63b3ed;">12</div></div>
+            <div class="funnel-pct">14.6%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-name">Pendientes</div>
+            <div class="funnel-track"><div class="funnel-fill" style="width:4.1%; background:#b794f4;">2</div></div>
+            <div class="funnel-pct">2.4%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-name">Calificados</div>
+            <div class="funnel-track"><div class="funnel-fill" style="width:2.0%; background:#68d391;">1</div></div>
+            <div class="funnel-pct">1.2%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Leads por vendedor</h3>
+        <canvas id="vendedorChart"></canvas>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ 2. ANÁLISIS DE LEADS ═══ -->
+  <div class="section">
+    <div class="section-header"><h2>Análisis de leads por segmento</h2></div>
+
+    <!-- Tabla por segmento -->
+    <div class="card" style="padding:0; overflow:hidden;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Rango de inversión</th>
+            <th>Total</th>
+            <th>Descartados</th>
+            <th>Activos</th>
+            <th>% Descarte</th>
+            <th>Recomendación</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>USD 290.000 – 320.000</strong></td><td>8</td><td>1</td><td>7</td>
+            <td><span class="pill pg">12.5%</span></td>
+            <td><span class="pill pg">🔥 Perfil ideal — priorizar</span></td>
+          </tr>
+          <tr>
+            <td>Menos de USD 320.000</td><td>5</td><td>2</td><td>3</td>
+            <td><span class="pill py">40.0%</span></td>
+            <td><span class="pill py">Calificar bien antes de avanzar</span></td>
+          </tr>
+          <tr>
+            <td>USD 250.000 – 290.000</td><td>24</td><td>15</td><td>9</td>
+            <td><span class="pill py">62.5%</span></td>
+            <td><span class="pill py">Verificar ajuste de producto</span></td>
+          </tr>
+          <tr>
+            <td>USD 320.000 – 350.000</td><td>11</td><td>8</td><td>3</td>
+            <td><span class="pill pr">72.7%</span></td>
+            <td><span class="pill pr">Revisar discurso para este rango</span></td>
+          </tr>
+          <tr>
+            <td>Menos de USD 250.000</td><td>23</td><td>17</td><td>6</td>
+            <td><span class="pill pr">73.9%</span></td>
+            <td><span class="pill pr">Descartar rápido si no hay ajuste</span></td>
+          </tr>
+          <tr>
+            <td>Más de USD 350.000</td><td>3</td><td>3</td><td>0</td>
+            <td><span class="pill pr">100%</span></td>
+            <td><span class="pill pr">Revisar oferta para este segmento</span></td>
+          </tr>
+          <tr>
+            <td style="color:#a0aec0;">Sin dato registrado</td><td>7</td><td>2</td><td>5</td>
+            <td><span class="pill pb">28.6%</span></td>
+            <td><span class="pill pb">Completar en próximo contacto</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ 3. DISTRIBUCIÓN POR PRODUCTO ═══ -->
+  <div class="section">
+    <div class="section-header"><h2>Distribución por producto</h2></div>
+
+    <!-- KPI por producto -->
+    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:16px; margin-bottom:20px;">
+
+      <div class="kpi" style="--c:#4299e1;">
+        <div class="label">Coihues III</div>
+        <div class="value">56</div>
+        <div class="note">67% del pipeline total</div>
+        <div class="flag">22 activos · 1 calificado</div>
+      </div>
+
+      <div class="kpi" style="--c:#ed8936;">
+        <div class="label">Laforet Casas</div>
+        <div class="value">19</div>
+        <div class="note">23% del pipeline total</div>
+        <div class="flag">6 activos · tasa descarte 68%</div>
+      </div>
+
+      <div class="kpi" style="--c:#a0aec0;">
+        <div class="label">Laforet Lotes</div>
+        <div class="value">1</div>
+        <div class="note">1% del pipeline total</div>
+        <div class="flag">0 activos · sin tracción</div>
+      </div>
+
+    </div>
+
+    <div class="grid-2">
+
+      <!-- Etapas por producto -->
+      <div class="card">
+        <h3>Etapas por producto — pipeline completo</h3>
+        <canvas id="prodStageChart" style="max-height:220px;"></canvas>
+      </div>
+
+      <!-- Diario por producto -->
+      <div class="card">
+        <h3>Leads por día y producto — mayo 6–14</h3>
+        <canvas id="dailyProdChart" style="max-height:220px;"></canvas>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ 4. PATRONES DETECTADOS ═══ -->
+  <div class="section">
+    <div class="section-header"><h2>Patrones detectados</h2></div>
+
+    <div class="insight-grid">
+
+      <div class="insight" style="--c:#38a169">
+        <span class="ico">🎯</span>
+        <div class="title">Sweet spot: USD 290k–320k</div>
+        <p>Este rango tiene la tasa de descarte más baja: <strong>12.5%</strong>. Es el perfil de comprador con mejor alineación al producto actual. La segmentación de Facebook debería orientarse a capturar más leads en este rango.</p>
+      </div>
+
+      <div class="insight" style="--c:#ed8936">
+        <span class="ico">📉</span>
+        <div class="title">Desajuste presupuestario masivo</div>
+        <p><strong>47 de 82 leads (57%)</strong> tienen presupuesto por debajo de USD 290k. La campaña de Facebook está captando un público demasiado amplio. Ajustar la segmentación puede reducir el volumen pero mejorar significativamente la calidad.</p>
+      </div>
+
+      <div class="insight" style="--c:#3182ce">
+        <span class="ico">💰</span>
+        <div class="title">11 leads con pago al contado sin cerrar</div>
+        <p>27 leads (32.9%) indicaron pago al contado, de los cuales <strong>11 siguen activos</strong>. Son los de mayor potencial de cierre rápido y deberían tener prioridad máxima de seguimiento esta semana.</p>
+      </div>
+
+      <div class="insight" style="--c:#e53e3e">
+        <span class="ico">🔄</span>
+        <div class="title">Cuello de botella en "Re contacto"</div>
+        <p><strong>18 leads (22%)</strong> están acumulados en esta etapa, la segunda más grande del pipeline. Indica que los leads no están siendo contactados en tiempo o no hay un criterio claro de cuándo pasar a descartado.</p>
+      </div>
+
+      <div class="insight" style="--c:#805ad5">
+        <span class="ico">📝</span>
+        <div class="title">Sin trazabilidad de conversaciones</div>
+        <p>Solo <strong>1 de 82 leads</strong> tiene una nota registrada. El equipo no está documentando sus conversaciones en Kommo. Sin registro, no hay aprendizaje colectivo, no hay handoff posible y no se pueden analizar las objeciones reales.</p>
+      </div>
+
+      <div class="insight" style="--c:#319795">
+        <span class="ico">📊</span>
+        <div class="title">Base reciente, momento clave</div>
+        <p>Todos los leads son de mayo 2026 — el CRM acaba de arrancar. Es el <strong>momento ideal para instalar buenos hábitos</strong>: criterios de etapa claros, notas obligatorias y seguimiento estructurado, antes de que el volumen escale.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ 4. CRITERIOS DE CALIFICACIÓN POR ETAPA ═══ -->
+  <div class="section">
+    <div class="section-header"><h2>Criterio de calificación por etapa</h2></div>
+    <p style="font-size:13px; color:#718096; margin-bottom:20px;">
+      Para que el pipeline refleje la realidad del negocio, cada etapa debe tener condiciones claras de entrada. Un lead no debería avanzar si no cumple los criterios de la etapa siguiente.
+    </p>
+
+    <div class="criteria-grid">
+
+      <div class="criteria-card" style="--c:#63b3ed">
+        <div class="stage-name">📥 Pendientes</div>
+        <div class="stage-desc">Lead recién llegado, sin primer contacto</div>
+        <ul>
+          <li>El lead llegó a través de Facebook Ads u otro canal</li>
+          <li>No hubo ningún intercambio todavía</li>
+          <li>Se asignó a un vendedor</li>
+        </ul>
+        <div class="discard-note">⏱ Si pasan más de 24 hs sin primer contacto, escalar.</div>
+      </div>
+
+      <div class="criteria-card" style="--c:#4299e1">
+        <div class="stage-name">💬 En conversación</div>
+        <div class="stage-desc">Contacto establecido, discovery en curso</div>
+        <ul>
+          <li>Se realizó al menos un intercambio real (WhatsApp, llamada, mensaje)</li>
+          <li>Se identificó el propósito (inversión o vivienda propia)</li>
+          <li>Se tiene un primer dato de presupuesto aproximado</li>
+          <li>El lead respondió y mostró interés mínimo</li>
+        </ul>
+        <div class="discard-note">⏱ Si no avanza en 7 días, mover a Re contacto o Descartado.</div>
+      </div>
+
+      <div class="criteria-card" style="--c:#f6ad55">
+        <div class="stage-name">🔄 Re contacto</div>
+        <div class="stage-desc">Lead que no respondió o pidió esperar</div>
+        <ul>
+          <li>Se hizo al menos 1 intento de contacto sin respuesta</li>
+          <li>O el lead pidió que lo contacten más adelante</li>
+          <li>Hay motivo para creer que puede retomarse</li>
+        </ul>
+        <div class="discard-note">⏱ Después de 3 intentos sin respuesta → Descartar con motivo.</div>
+      </div>
+
+      <div class="criteria-card" style="--c:#68d391">
+        <div class="stage-name">✅ Calificados</div>
+        <div class="stage-desc">Lead listo para avanzar hacia el cierre</div>
+        <ul>
+          <li><strong>Validó el precio</strong>: el rango de inversión es compatible con el producto</li>
+          <li><strong>Le gustó el producto</strong>: mostró interés genuino en la propuesta</li>
+          <li><strong>Abierto a profundizar</strong>: quiere visita, reunión o más información concreta</li>
+          <li>Se conoce su esquema de financiación (contado, cuotas, etc.)</li>
+          <li>Se acordó un próximo paso concreto con fecha</li>
+        </ul>
+      </div>
+
+      <div class="criteria-card" style="--c:#fc8181">
+        <div class="stage-name">❌ Descartados</div>
+        <div class="stage-desc">Lead que no califica para el producto actual</div>
+        <ul>
+          <li>Presupuesto claramente incompatible con el producto</li>
+          <li>Busca entrega inmediata (HAUS vende en pozo)</li>
+          <li>Consulta por error (alquiler, otro tipo de inmueble)</li>
+          <li>No respondió después de 3 intentos de contacto</li>
+          <li>Suspendió la búsqueda de forma explícita</li>
+        </ul>
+        <div class="discard-note">✍ Siempre registrar el motivo de descarte en una nota.</div>
+      </div>
+
+      <div class="criteria-card" style="--c:#b794f4">
+        <div class="stage-name">📋 Regla general</div>
+        <div class="stage-desc">Para todos los movimientos de etapa</div>
+        <ul>
+          <li>Todo cambio de etapa debe tener una nota asociada</li>
+          <li>Los leads no pueden estar más de 7 días en la misma etapa sin actividad</li>
+          <li>Si no hay próximo paso definido, el lead no avanzó</li>
+          <li>Un lead no pasa a Calificados con solo un "me parece interesante"</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ 5. METODOLOGÍA DE ATENCIÓN ═══ -->
+  <div class="section">
+    <div class="section-header"><h2>Metodología de atención de leads</h2></div>
+    <p style="font-size:13px; color:#718096; margin-bottom:20px;">
+      El siguiente framework está basado en procesos comerciales probados en proyectos inmobiliarios similares. Adoptarlo desde el inicio va a marcar la diferencia entre un pipeline que refleja la realidad y uno lleno de leads estancados.
+    </p>
+
+    <div class="method-grid" style="margin-bottom:20px;">
+
+      <div class="method-card">
+        <h3>🧭 Los 8 ejes del discovery</h3>
+        <p style="font-size:12px; color:#718096; margin-bottom:14px;">Toda primera conversación debería cubrir estos ejes. Los primeros 5 son obligatorios para mover un lead a Calificados.</p>
+
+        <div class="axis-row">
+          <div class="axis-num">1</div>
+          <div class="axis-content">
+            <div class="axis-title">Origen geográfico</div>
+            <div class="axis-sub">¿De dónde es? CABA / interior / exterior. Define si una visita presencial es viable.</div>
+          </div>
+        </div>
+        <div class="axis-row">
+          <div class="axis-num">2</div>
+          <div class="axis-content">
+            <div class="axis-title">Propósito de compra</div>
+            <div class="axis-sub">¿Inversión o vivienda propia? Cambia el matching del producto y el discurso comercial.</div>
+          </div>
+        </div>
+        <div class="axis-row">
+          <div class="axis-num">3</div>
+          <div class="axis-content">
+            <div class="axis-title">Tipología buscada</div>
+            <div class="axis-sub">Cantidad de ambientes, zona preferida, características específicas.</div>
+          </div>
+        </div>
+        <div class="axis-row">
+          <div class="axis-num">4</div>
+          <div class="axis-content">
+            <div class="axis-title">Capacidad económica</div>
+            <div class="axis-sub">Presupuesto en USD + monto de anticipo + cuotas que puede afrontar.</div>
+          </div>
+        </div>
+        <div class="axis-row">
+          <div class="axis-num">5</div>
+          <div class="axis-content">
+            <div class="axis-title">Plazo y urgencia <span style="color:#e53e3e; font-size:10px;">★ FILTRO CLAVE</span></div>
+            <div class="axis-sub">¿Cuándo necesita la unidad? Si pide entrega inmediata, HAUS no puede ser su proveedor hoy. Preguntarlo en el primer mensaje ahorra semanas.</div>
+          </div>
+        </div>
+        <div class="axis-row">
+          <div class="axis-num">6</div>
+          <div class="axis-content">
+            <div class="axis-title">Activos colaterales</div>
+            <div class="axis-sub">¿Tiene otra propiedad que quiere vender para financiar la compra? Eso es la financiación real del deal.</div>
+          </div>
+        </div>
+        <div class="axis-row">
+          <div class="axis-num">7</div>
+          <div class="axis-content">
+            <div class="axis-title">Perfil personal</div>
+            <div class="axis-sub">Edad, familia, mascotas, profesión. Define qué unidad matchea mejor y cómo adaptar el tono comercial.</div>
+          </div>
+        </div>
+        <div class="axis-row">
+          <div class="axis-num">8</div>
+          <div class="axis-content">
+            <div class="axis-title">Objeciones tempranas</div>
+            <div class="axis-sub">Lo que el lead trae sin que vos preguntes. Anotarlo textual — es lo más valioso de la conversación y anticipa lo que va a frenar el cierre.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="method-card">
+        <h3>🚫 Filtros rápidos — descartar en el primer contacto</h3>
+        <p style="font-size:12px; color:#718096; margin-bottom:14px;">No invertir tiempo en leads que nunca van a cerrar. Estos casos se identifican en los primeros 2 minutos de conversación.</p>
+        <ul class="discard-list">
+          <li><span class="x">✗</span><div><strong>Consulta por alquiler.</strong> HAUS vende, no alquila. Registrar motivo "Consulta por error".</div></li>
+          <li><span class="x">✗</span><div><strong>Necesita entrega inmediata.</strong> Si no tolera plazos en pozo, no es el momento. Preguntar en el primer mensaje: ahorra semanas de trabajo sin resultado.</div></li>
+          <li><span class="x">✗</span><div><strong>Presupuesto manifiestamente incompatible.</strong> Si el presupuesto está muy por debajo del mínimo del producto y no hay forma de ajustarlo, no hay deal.</div></li>
+          <li><span class="x">✗</span><div><strong>Duplicado.</strong> Si llega el mismo número o email dos veces, fusionar y no gestionar dos veces.</div></li>
+          <li><span class="x">✗</span><div><strong>Suspendió la búsqueda.</strong> Registrar motivo, cerrar y agendar reactivación en 90 días.</div></li>
+        </ul>
+
+        <div style="margin-top:20px;">
+          <h3 style="font-size:13px; font-weight:700; color:#1a202c; margin-bottom:14px;">🔒 Regla de cierre de conversación</h3>
+          <p style="font-size:13px; color:#4a5568; line-height:1.7;">
+            Cada conversación debe terminar con un <strong>próximo paso concreto</strong>, registrado en Kommo como nota y agendado como tarea con fecha. <br><br>
+            <em>"Te escribo después"</em> no es un cierre. Es una conversación que quedó abierta.<br><br>
+            Ejemplos válidos: <em>coordinar visita la semana del 20/5 · enviar valores de referencia hoy · llamar el jueves a las 11hs</em>.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Plantilla de nota -->
+    <div class="card" style="margin-bottom:20px;">
+      <h3>📋 Plantilla de nota — primera conversación</h3>
+      <p style="font-size:12px; color:#718096; margin-bottom:16px;">Copiar y pegar como primera nota del lead después del primer contacto. Completar lo que se tiene; dejar en blanco lo que falta para el siguiente contacto.</p>
+      <div class="template-box">
+        <div class="tpl-title">FICHA DE DISCOVERY — HAUS Desarrollos</div>
+        Nombre / cómo le dicen: _______________<br>
+        Origen / ciudad: _______________<br>
+        Propósito: inversión / vivienda propia / familiar<br>
+        Tipología buscada: _______________<br>
+        Presupuesto USD: _______________<br>
+        Anticipo disponible: _______________<br>
+        Cuotas que tolera: _______________<br>
+        Plazo de entrega aceptable: _______________<br>
+        Activos colaterales (propiedades para vender): _______________<br>
+        Perfil (familia / mascotas / profesión): _______________<br>
+        Objeciones que mencionó (textual): _______________<br>
+        Próximo paso acordado: _______________
+      </div>
+    </div>
+
+    <!-- Errores comunes -->
+    <div class="card">
+      <h3>⚠️ Errores más comunes a evitar desde el arranque</h3>
+      <div class="error-grid" style="margin-top:4px;">
+        <div class="error-item">
+          <span class="eico">📋</span>
+          <div><strong>No registrar notas después de cada contacto</strong>Si la conversación no está en Kommo, no existe. Sin nota, no hay handoff posible y el pipeline pierde valor.</div>
+        </div>
+        <div class="error-item">
+          <span class="eico">⏱</span>
+          <div><strong>No preguntar el plazo de entrega en el primer contacto</strong>Es la causa #1 de pérdida de tiempo. Un lead que necesita entrega inmediata no califica. Preguntarlo al inicio ahorra semanas.</div>
+        </div>
+        <div class="error-item">
+          <span class="eico">🔄</span>
+          <div><strong>Dejar leads en "Re contacto" indefinidamente</strong>Si un lead no responde después de 3 intentos, debe ir a Descartado con motivo registrado. Los leads muertos llenan el pipeline y distorsionan los datos.</div>
+        </div>
+        <div class="error-item">
+          <span class="eico">✍</span>
+          <div><strong>Escribir notas de una sola palabra</strong>"Interesado", "llamé", "no contesta" no aportan nada. La nota tiene que ser útil para alguien que no estuvo en la conversación.</div>
+        </div>
+        <div class="error-item">
+          <span class="eico">❌</span>
+          <div><strong>No registrar el motivo de descarte</strong>Sin motivo, no se puede mejorar ni la segmentación ni el proceso. Cada descarte es información valiosa si se registra bien.</div>
+        </div>
+        <div class="error-item">
+          <span class="eico">🎯</span>
+          <div><strong>Pasar leads a Calificados sin validar el precio</strong>Un lead entusiasmado no es un lead calificado. Calificado = validó el precio + le gusta el producto + tiene un próximo paso.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 6. CHECKLIST DIARIO ═══ -->
+  <div class="section">
+    <div class="section-header"><h2>Checklist diario para el equipo</h2></div>
+    <div class="grid-2">
+
+      <div class="card">
+        <h3>✅ Antes de cerrar el día — verificar por cada lead tocado</h3>
+        <ul class="checklist">
+          <li><span class="box"></span>¿Tiene al menos una nota con la ficha de discovery mínima?</li>
+          <li><span class="box"></span>¿Están cargados rango de inversión y financiación?</li>
+          <li><span class="box"></span>¿Tiene una tarea agendada con fecha concreta?</li>
+          <li><span class="box"></span>¿Si avanzó o se perdió, quedó en la etapa correcta?</li>
+          <li><span class="box"></span>¿Si se descartó, tiene motivo registrado en nota?</li>
+        </ul>
+        <p style="font-size:12px; color:#a0aec0; margin-top:14px; font-style:italic;">Si podés decir sí a las cinco, hiciste el trabajo.</p>
+      </div>
+
+      <div class="card">
+        <h3>🎯 Foco de esta semana para el equipo</h3>
+        <ul class="checklist">
+          <li><span class="box"></span>Contactar los <strong>11 leads activos con pago al contado</strong></li>
+          <li><span class="box"></span>Revisar los <strong>18 en "Re contacto"</strong> y definir cuáles siguen y cuáles se descartan</li>
+          <li><span class="box"></span>Completar rango de inversión en los <strong>7 leads sin dato</strong></li>
+          <li><span class="box"></span>Empezar a usar la <strong>ficha de discovery</strong> como nota en cada primer contacto</li>
+          <li><span class="box"></span>Registrar el <strong>motivo en cada descarte</strong> que se haga de acá en adelante</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<div class="footer">
+  HAUS Desarrollos · Kommo CRM · Análisis generado el 14 de mayo de 2026
+</div>
+
+<script>
+// ── PRODUCTO × ETAPA CHART ──
+new Chart(document.getElementById('prodStageChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Coihues III', 'Laforet Casas', 'Laforet Lotes'],
+    datasets: [
+      { label: 'Descartados',     data: [34, 13, 1], backgroundColor: '#fc8181', borderRadius: 4 },
+      { label: 'Re contacto',     data: [12,  1, 0], backgroundColor: '#f6ad55', borderRadius: 4 },
+      { label: 'En conversación', data: [ 8,  5, 0], backgroundColor: '#63b3ed', borderRadius: 4 },
+      { label: 'Calificados',     data: [ 1,  0, 0], backgroundColor: '#68d391', borderRadius: 4 },
+      { label: 'Pendientes',      data: [ 1,  0, 0], backgroundColor: '#b794f4', borderRadius: 4 },
+    ]
+  },
+  options: {
+    scales: {
+      x: { stacked: true, ticks: { color: '#718096' }, grid: { color: '#f0f2f7' } },
+      y: { stacked: true, ticks: { color: '#718096' }, grid: { color: '#f0f2f7' }, beginAtZero: true }
+    },
+    plugins: { legend: { position: 'bottom', labels: { color: '#718096', font: { size: 11 }, padding: 10 } } },
+    responsive: true, maintainAspectRatio: true
+  }
+});
+
+// ── DIARIO × PRODUCTO CHART ──
+new Chart(document.getElementById('dailyProdChart'), {
+  type: 'bar',
+  data: {
+    labels: ['6 may','7 may','8 may','9 may','10 may','11 may','12 may','13 may','14 may'],
+    datasets: [
+      { label: 'Coihues III',   data: [6,8,3,4,4,5,5,3,1], backgroundColor: '#63b3ed', borderRadius: 4 },
+      { label: 'Laforet Casas', data: [0,3,1,3,0,3,1,2,2], backgroundColor: '#f6ad55', borderRadius: 4 },
+    ]
+  },
+  options: {
+    scales: {
+      x: { stacked: true, ticks: { color: '#718096' }, grid: { color: '#f0f2f7' } },
+      y: { stacked: true, ticks: { color: '#718096' }, grid: { color: '#f0f2f7' }, beginAtZero: true }
+    },
+    plugins: { legend: { position: 'bottom', labels: { color: '#718096', font: { size: 11 }, padding: 10 } } },
+    responsive: true, maintainAspectRatio: true
+  }
+});
+
+// ── VENDEDOR CHART ──
+new Chart(document.getElementById('vendedorChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Florencia', 'Santiago / Fran'],
+    datasets: [
+      { label: 'Descartados',    data: [24, 25], backgroundColor: '#fc8181', borderRadius: 4 },
+      { label: 'Re contacto',    data: [8,  10], backgroundColor: '#f6ad55', borderRadius: 4 },
+      { label: 'En conversación',data: [8,   4], backgroundColor: '#63b3ed', borderRadius: 4 },
+      { label: 'Pendientes',     data: [1,   1], backgroundColor: '#b794f4', borderRadius: 4 },
+      { label: 'Calificados',    data: [1,   0], backgroundColor: '#68d391', borderRadius: 4 },
+    ]
+  },
+  options: {
+    scales: {
+      x: { stacked: true, ticks: { color: '#718096' }, grid: { color: '#f0f2f7' } },
+      y: { stacked: true, ticks: { color: '#718096' }, grid: { color: '#f0f2f7' }, beginAtZero: true }
+    },
+    plugins: { legend: { position: 'bottom', labels: { color: '#718096', font: { size: 11 }, padding: 10 } } },
+    responsive: true, maintainAspectRatio: true
+  }
+});
+
+</script>
+</body>
+</html>
